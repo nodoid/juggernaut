@@ -15,7 +15,8 @@
 
         .export _game_run
 
-        .import hw_init, wait_frame, kbd_scan, frame_count, keys
+        .import hw_init, wait_frame, kbd_scan, keys
+        .importzp frame_count
         .import scr_init, blit_setup, gtext
 
         .segment "BSS"

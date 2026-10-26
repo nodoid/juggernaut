@@ -10,6 +10,13 @@
 snd_timer: .res 1
 snd_spd:   .res 1
 
+; AY register 7 is the mixer AND the port direction register: bits 6 and 7
+; are the direction of ports A and B (1 = output).  The keyboard columns are
+; driven from port A, so a mixer value with those bits clear silences the
+; keyboard as well as the sound.  Every write to register 7 below therefore
+; keeps both bits set - hence $FE and $D6 rather than $3E and $16.
+AY_PORTS = $C0
+
         .code
 
 ; snd_init - tone on channel A only, silent
@@ -17,7 +24,7 @@ snd_init:
         lda #0
         sta snd_timer
         lda #7
-        ldx #$3E
+        ldx #AY_PORTS|$3E
         jsr ay_set
         lda #8
         ldx #0
@@ -64,7 +71,7 @@ snd_crash:
         ldx #12                 ; noise period
         jsr ay_set
         lda #7
-        ldx #$16                ; tone A and noise A
+        ldx #AY_PORTS|$16       ; tone A and noise A
         jsr ay_set
         lda #8
         ldx #15
@@ -80,7 +87,7 @@ snd_tick:
         dec snd_timer
         bne @done
         lda #7
-        ldx #$3E
+        ldx #AY_PORTS|$3E
         jsr ay_set
         lda #8
         ldx #0

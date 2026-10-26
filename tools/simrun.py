@@ -75,6 +75,13 @@ class FakeVIA(bytearray):
         self.pressed = held
 
     def key_bit(self):
+        # AY register 7 bits 6 and 7 set the direction of ports A and B: 1 =
+        # output.  The keyboard columns are driven by port A, so if that bit is
+        # clear the pins float and no key can ever be read - exactly as on the
+        # real chip.  This matters because the sound code shares register 7
+        # (it is the mixer/enable register too).
+        if not (self.ay[7] & 0x80):
+            return 0x00
         row = self.orb & 0x07
         mask = self.ay[14]
         for r, c in self.pressed:
@@ -168,9 +175,12 @@ def main() -> int:
     ap.add_argument("--steps", type=int, default=400000)
     ap.add_argument("--out", default=os.path.join(ROOT, "build", "sim.png"))
     ap.add_argument("--dump", action="append", default=[])
+    ap.add_argument("--trace", action="append", default=[], metavar="ADDR",
+                    help="print a byte and the step count whenever it changes")
     ap.add_argument("--press", action="append", default=[],
                     metavar="ROW:COL:FROM:TO",
-                    help="hold a key matrix position down between two steps")
+                    help="hold a key matrix position down between two steps "
+                         "(ROW and COL are the matrix indices 0..7)")
     args = ap.parse_args()
 
     addr, data = load_tap(args.tap)
@@ -193,15 +203,23 @@ def main() -> int:
 
     for p in args.press:
         r, c, a, b = (int(x, 0) for x in p.split(":"))
+        if not (0 <= r < 8 and 0 <= c < 8):
+            raise SystemExit("key position %r must be row 0-7, column 0-7" % p)
         mem.schedule.append((a, b, r, c))
 
     steps = 0
     bad = None
+    trace = [(int(t, 16), None) for t in args.trace]
     while steps < args.steps:
         pc = mpu.pc
         mem.set_step(steps)
         mpu.step()
         steps += 1
+        for i, (a, prev) in enumerate(trace):
+            v = mem[a]
+            if v != prev:
+                print("step %d  $%04X = $%02X" % (steps, a, v))
+                trace[i] = (a, v)
         if not (PROG_LO <= pc < PROG_HI):
             bad = pc
             break
