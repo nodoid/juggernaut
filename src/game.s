@@ -24,7 +24,7 @@
         .import snd_init, snd_tick, snd_crash
         .import ui_title, ui_menu, ui_menu_mark, ui_drive, ui_icons, ui_map
         .import ui_map_marker, ui_clear_view, ui_clear_all, ui_msg, ui_high
-        .import ui_keys, ui_keys_prompt
+        .import ui_keys, ui_keys_prompt, ui_size
         .import menu_main_tab, menu_main_n, menu_prac_tab, menu_prac_n
         .import menu_phone_tab, menu_phone_n
         .import poi_tab, poi_count, phones, phone_count, town_cells
@@ -70,6 +70,7 @@ S_LOAD   = 6
 S_HIGH   = 7
 S_OVER   = 8
 S_KEYS   = 9
+S_SIZE   = 10
 
 ; ---------------------------------------------------------------------------
 _game_run:
@@ -215,7 +216,7 @@ game_dispatch:
 state_tab:
         .word st_title, st_main, st_prac, st_drive
         .word st_play, st_phone, st_play, st_high
-        .word st_over, st_keys
+        .word st_over, st_keys, st_size
 
 ; ---------------------------------------------------------------------------
 st_title:
@@ -240,7 +241,13 @@ st_main:
         jmp go_drive
 @1:     cmp #1
         bne @2
-        jsr toggle_size
+        lda lsize               ; start with the marker on the lorry in use
+        sta menu_sel
+        lda #S_SIZE
+        sta game_state
+        jsr ui_clear_all
+        jsr text_clear
+        jsr ui_size
         jmp @done
 @2:     cmp #2
         bne @3
@@ -1022,9 +1029,9 @@ flash_msg:
         jmp ui_msg
 
 ; ---------------------------------------------------------------------------
-toggle_size:
-        lda lsize
-        eor #1
+; set_size - A = 0 small, 1 large.  The length and the capacity follow the
+; choice; the lorry is the same shape either way.
+set_size:
         sta lsize
         beq @small
         lda #38
@@ -1037,6 +1044,45 @@ toggle_size:
         lda #6
         sta trk_cap
         rts
+
+; ---------------------------------------------------------------------------
+; st_size - choose the small or the large lorry
+st_size:
+        lda edge
+        and #12
+        beq @fire
+        and #4
+        beq @right
+        lda menu_sel
+        beq @done
+        dec menu_sel
+        jmp @redraw
+@right: lda menu_sel
+        cmp #2
+        bcs @done
+        inc menu_sel
+@redraw:
+        jsr ui_size
+        rts
+@fire:  lda edge
+        and #16
+        beq @done
+        lda menu_sel
+        bne @large
+        lda #0
+        jsr set_size
+        jmp @redraw
+@large: cmp #1
+        bne @exit
+        lda #1
+        jsr set_size
+        jmp @redraw
+@exit:  lda #0
+        sta menu_sel
+        lda #S_MAIN
+        sta game_state
+        jsr main_menu
+@done:  rts
 
 ; ---------------------------------------------------------------------------
 practice_start:
@@ -1076,11 +1122,8 @@ game_new:
         sta delivered+1
         sta delivered+2
         sta delivered+3
-        jsr toggle_size
-        lda lsize
-        eor #1
-        sta lsize
-        jsr toggle_size
+        lda lsize               ; the chosen size sets length and capacity
+        jsr set_size
         lda #31                 ; the loading bay at the depot
         ldx #26
         ldy #0
@@ -1122,9 +1165,6 @@ st_over:
         jsr game_new
         lda #S_MAIN
         sta game_state
-        lda #0
-        sta lsize
-        jsr toggle_size
         jsr main_menu
 @done:  rts
 

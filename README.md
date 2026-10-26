@@ -114,8 +114,9 @@ the state machine and the key bindings can be followed step by step.
 
 ## What is in and what is not
 
-Working: the title, the main menu, defining keys, the practice menu, the drive
-screen with its six icons, the town map and phone directory, driving with gears,
+Working: the title, the main menu, choosing the small or large lorry, defining
+keys, the practice menu, the drive screen with its six icons, the town map and
+phone directory, driving with gears,
 steering, the trailer, damage on kerbs and buildings, fuel, the clock, loading
 at the wholesalers, unloading at the depot, the garage, the tonnage in tons and
 kilos, and the end of game score.
@@ -123,5 +124,6 @@ kilos, and the end of game score.
 Simplified compared with the Spectrum original: there are no other vehicles on
 the roads, the load quantity is "as much as fits" rather than a number you
 choose with left/right, the high score table is displayed but not yet filled
-in, the key definitions are not saved anywhere, and the practice menu has one
-course rather than the five in the original.
+in, the key definitions are not saved anywhere, the lorry size changes the
+length and the capacity but not how the lorry handles, and the practice menu has
+one course rather than the five in the original.

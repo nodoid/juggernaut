@@ -6,7 +6,7 @@
         .export ui_title, ui_menu, ui_menu_mark, ui_drive, ui_icons
         .export ui_map, ui_map_marker, ui_clear_view, ui_clear_all, ui_msg
         .export ui_box, ui_high, ui_panel
-        .export ui_keys, ui_keys_prompt
+        .export ui_keys, ui_keys_prompt, ui_size
         .export menu_main_tab, menu_main_n
         .export menu_prac_tab, menu_prac_n
         .export menu_phone_tab, menu_phone_n
@@ -540,6 +540,84 @@ key_code:
         ldy mk_y
         jmp gchar
 
+; ---------------------------------------------------------------------------
+; ui_size - the lorry size screen: the two lorries with their length and
+; capacity, the one in use named underneath, and DONE to go back.
+ui_size:
+        lda #<t_size
+        sta txtptr
+        lda #>t_size
+        sta txtptr+1
+        ldx #14
+        ldy #8
+        jsr gtext
+        lda #<t_sizehint
+        sta txtptr
+        lda #>t_sizehint
+        sta txtptr+1
+        ldx #8
+        ldy #120
+        jsr gtext
+        lda #0
+        sta mk_i
+@row:   lda mk_i
+        asl a
+        asl a
+        asl a
+        asl a
+        clc
+        adc #40
+        sta mk_y
+        lda #32                 ; selection arrow
+        sta mk_c
+        lda mk_i
+        cmp menu_sel
+        bne @mark
+        lda #62
+        sta mk_c
+@mark:  lda mk_c
+        ldx #12
+        ldy mk_y
+        jsr gchar
+        lda mk_i                ; lorry name
+        asl a
+        tay
+        lda size_names,y
+        sta txtptr
+        lda size_names+1,y
+        sta txtptr+1
+        ldx #14
+        ldy mk_y
+        jsr gtext
+        lda mk_i
+        cmp #2                  ; DONE has no figures
+        bcs @next
+        lda mk_i                ; length and capacity
+        asl a
+        tay
+        lda size_dims,y
+        sta txtptr
+        lda size_dims+1,y
+        sta txtptr+1
+        ldx #27
+        ldy mk_y
+        jsr gtext
+@next:  inc mk_i
+        lda mk_i
+        cmp #3
+        bne @row
+        ldx #<t_cur_small       ; which one is fitted now
+        ldy #>t_cur_small
+        lda lsize
+        beq @have
+        ldx #<t_cur_large
+        ldy #>t_cur_large
+@have:  stx txtptr
+        sty txtptr+1
+        ldx #15
+        ldy #96
+        jmp gtext
+
 ; ui_keys_prompt - A = 0 blank, 1 "release", 2 "press a key"
 ui_keys_prompt:
         pha
@@ -579,6 +657,22 @@ t_oric:   .byte "ORIC ATMOS",0
 t_press:  .byte "PRESS FIRE",0
 t_town:   .byte "SCARTHORPE",0
 t_hs:     .byte "HIGH SCORES",0
+
+t_size:      .byte "LORRY SIZE",0
+t_sizehint:  .byte "O/P MOVE  FIRE SELECT",0
+t_cur_small: .byte "CURRENT: SMALL",0
+t_cur_large: .byte "CURRENT: LARGE",0
+
+size_names:
+        .word n_small, n_large, n_done
+n_small: .byte "SMALL LORRY",0
+n_large: .byte "LARGE LORRY",0
+n_done:  .byte "DONE",0
+
+size_dims:
+        .word d_small, d_large
+d_small: .byte "24FT  6T",0
+d_large: .byte "38FT 16T",0
 
 t_keys:    .byte "DEFINE KEYS",0
 t_keyhint: .byte "O/P MOVE  FIRE SELECT",0
