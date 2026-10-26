@@ -51,9 +51,10 @@ Every one of those keys can be changed: DEFINE KEYS on the main menu lists the
 six actions with the key each one is on, `O`/`P` move up and down the list and
 the fire key starts a rebinding - let go of everything, then press the key you
 want.  DONE goes back to the main menu.  The new keys last until the machine is
-reset.  That screen always answers to `O`, `P`, `M` and Space themselves, so it
-can never lock you out, and the arrow keys, Escape and the shifts and controls
-can all be bound (they are shown shortened: `UP`, `LT`, `ES`, `RC` and so on).
+reset.  That screen always answers to `O`, `P`, `M`, Space and to the fire key you
+have just chosen, so it can never lock you out, and the arrow keys, Escape and
+the shifts and controls can all be bound (they are shown shortened: `UP`, `LT`,
+`ES`, `RC` and so on).
 `M` and Space also keep working as fire everywhere else, whatever the fire key
 has been changed to, so the menus can never be left without one.
 

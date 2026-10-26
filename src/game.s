@@ -449,6 +449,15 @@ raw_bits:
 @ns:    ldx #K_SP_ROW
         lda keys,x
         and #K_SP_COL
+        beq @nsp
+        lda tmp5
+        ora #4
+        sta tmp5
+@nsp:   ; the fire key as it is bound right now, so this screen still answers
+        ; to the key the player has just chosen for fire
+        ldx kb_row+4
+        lda kb_mask+4
+        jsr key_down
         beq @edge
         lda tmp5
         ora #4
