@@ -1,0 +1,29 @@
+# Build output
+build/
+dist/
+*.tap
+*.dsk
+*.bin
+
+# Object files, listings and linker output
+*.o
+*.obj
+*.a
+*.lib
+*.lst
+*.map
+*.lbl
+*.dbg
+*.sdb
+*.sym
+
+# cc65 / ca65 temporaries
+*.i
+*.s~
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
