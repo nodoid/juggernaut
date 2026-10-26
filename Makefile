@@ -11,6 +11,18 @@ INC     = src/hw.inc src/zp.inc
 
 all: $(TAP)
 
+# A separate tape that just shows the key matrix, for checking the scan
+KEYTAP  = $(BUILD)/keytest.tap
+KASRC   = src/keytest.s src/header.s src/hw.s src/screen.s \
+          data/font.s data/tables.s
+
+keytest: $(KEYTAP)
+
+$(KEYTAP): $(CSRC) $(KASRC) $(INC)
+	@mkdir -p $(BUILD)
+	$(CL65) -t atmos -O -I src -C src/juggernaut.cfg --obj-path $(BUILD) \
+	        -o $@ $(CSRC) $(KASRC)
+
 $(TAP): $(CSRC) $(ASRC) $(INC)
 	@mkdir -p $(BUILD)
 	$(CL65) -t atmos -O -I src -C src/juggernaut.cfg --obj-path $(BUILD) \
@@ -26,4 +38,4 @@ run: $(TAP)
 clean:
 	rm -rf $(BUILD)
 
-.PHONY: all assets run clean
+.PHONY: all assets run clean keytest
