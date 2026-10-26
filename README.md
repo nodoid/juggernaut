@@ -47,6 +47,14 @@ Gears run 0 (neutral) to 5 (reverse), with 1 to 4 forwards.  The lorry only
 moves in gear, and you can only change gear when it is stationary, exactly as
 in the original.
 
+Every one of those keys can be changed: DEFINE KEYS on the main menu lists the
+six actions with the key each one is on, `O`/`P` move up and down the list and
+the fire key starts a rebinding - let go of everything, then press the key you
+want.  DONE goes back to the main menu.  The new keys last until the machine is
+reset.  That screen always answers to `O`, `P`, `M` and Space themselves, so it
+can never lock you out, and the arrow keys, Escape and the shifts and controls
+can all be bound (they are shown shortened: `UP`, `LT`, `ES`, `RC` and so on).
+
 ## How it is put together
 
 | File | What it does |
@@ -88,25 +96,29 @@ VIA and AY modelled to serve the keyboard, then renders the screen the way the
 ULA would.  It is the quick way to see a screen without the emulator:
 
 ```sh
+# press M (matrix row 2, column 0) twice: title to menu, menu to drive
 python3 tools/simrun.py --steps 400000 \
-    --press 5:7:95000:105000 \        # press M (row 5, column 7)
-    --press 5:7:180000:190000 \
+    --press 2:0:95000:105000 \
+    --press 2:0:180000:190000 \
     --out /tmp/drive.png
 ```
 
 `--press ROW:COL:FROM:TO` holds a key matrix position down between two
 instruction counts, so a sequence of key presses can drive the game into any
-screen.
+screen.  ROW and COL are indices 0-7, not masks; the matrix layout is in
+`src/hw.inc`.  `--trace ADDR` prints a byte whenever it changes, which is how
+the state machine and the key bindings can be followed step by step.
 
 ## What is in and what is not
 
-Working: the title, the main menu, the practice menu, the drive screen with
-its six icons, the town map and phone directory, driving with gears, steering,
-the trailer, damage on kerbs and buildings, fuel, the clock, loading at the
-wholesalers, unloading at the depot, the garage, the tonnage in tons and kilos,
-and the end of game score.
+Working: the title, the main menu, defining keys, the practice menu, the drive
+screen with its six icons, the town map and phone directory, driving with gears,
+steering, the trailer, damage on kerbs and buildings, fuel, the clock, loading
+at the wholesalers, unloading at the depot, the garage, the tonnage in tons and
+kilos, and the end of game score.
 
 Simplified compared with the Spectrum original: there are no other vehicles on
 the roads, the load quantity is "as much as fits" rather than a number you
 choose with left/right, the high score table is displayed but not yet filled
-in, and the practice menu has one course rather than the five in the original.
+in, the key definitions are not saved anywhere, and the practice menu has one
+course rather than the five in the original.

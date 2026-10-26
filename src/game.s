@@ -10,8 +10,9 @@
 
         .export _game_run
         .export dest
+        .export kb_row, kb_mask
 
-        .import hw_init, kbd_scan, wait_frame, key_down
+        .import hw_init, kbd_scan, wait_frame, key_down, keys
         .import scr_init, text_clear, row_addr, gtext, gchar, text_str
         .import town_rows_init, town_cell_at, view_draw, viewrows_init
         .import text_tons, text_char
@@ -23,6 +24,7 @@
         .import snd_init, snd_tick, snd_crash
         .import ui_title, ui_menu, ui_menu_mark, ui_drive, ui_icons, ui_map
         .import ui_map_marker, ui_clear_view, ui_clear_all, ui_msg, ui_high
+        .import ui_keys, ui_keys_prompt
         .import menu_main_tab, menu_main_n, menu_prac_tab, menu_prac_n
         .import menu_phone_tab, menu_phone_n
         .import poi_tab, poi_count, phones, phone_count, town_cells
@@ -47,6 +49,14 @@ repeat: .res 1
 msgdlg: .res 1
 dest:   .res 1
 
+; key bindings - one matrix row and one column mask per action, so the player
+; can change them on the DEFINE KEYS screen.  Order: accelerate, brake, left,
+; right, fire, back to map.
+kb_row:  .res 6
+kb_mask: .res 6
+kb_wait: .res 1                 ; 0 menu, 1 waiting for release, 2 for a press
+rawprev: .res 1                 ; raw O/P/fire bits of the previous frame
+
         .code
 
 ; state numbers
@@ -70,6 +80,7 @@ _game_run:
         jsr snd_init
         lda #255
         sta dest
+        jsr keys_default
         jsr game_new
         jsr ui_title
         lda #S_TITLE
@@ -91,10 +102,11 @@ KF_RIGHT = 8
 KF_FIRE  = 16
 KF_STOP  = 32
 
-.macro KEYTEST row, mask, bit
+; KEYTEST i, bit - test binding i and set its bit in kflags
+.macro KEYTEST i, bit
         .local skip
-        ldx #row
-        lda #mask
+        ldx kb_row+i
+        lda kb_mask+i
         jsr key_down
         beq skip
         lda kflags
@@ -103,18 +115,55 @@ KF_STOP  = 32
 skip:
 .endmacro
 
+; keys_default - the keys the game starts with
+keys_default:
+        lda #K_A_ROW
+        sta kb_row+0
+        lda #K_A_COL
+        sta kb_mask+0            ; A = accelerate
+        lda #K_Z_ROW
+        sta kb_row+1
+        lda #K_Z_COL
+        sta kb_mask+1            ; Z = brake
+        lda #K_O_ROW
+        sta kb_row+2
+        lda #K_O_COL
+        sta kb_mask+2            ; O = left
+        lda #K_P_ROW
+        sta kb_row+3
+        lda #K_P_COL
+        sta kb_mask+3            ; P = right
+        lda #K_M_ROW
+        sta kb_row+4
+        lda #K_M_COL
+        sta kb_mask+4            ; M = fire / change gear
+        lda #K_S_ROW
+        sta kb_row+5
+        lda #K_S_COL
+        sta kb_mask+5            ; S = back to the map
+        rts
+
 read_keys:
         lda kflags
         sta lastk
         lda #0
         sta kflags
-        KEYTEST K_A_ROW, K_A_COL, KF_UP          ; A = accelerate
-        KEYTEST K_Z_ROW, K_Z_COL, KF_DOWN        ; Z = brake
-        KEYTEST K_O_ROW, K_O_COL, KF_LEFT        ; O = left
-        KEYTEST K_P_ROW, K_P_COL, KF_RIGHT       ; P = right
-        KEYTEST K_M_ROW, K_M_COL, KF_FIRE        ; M = fire / change gear
-        KEYTEST K_SP_ROW, K_SP_COL, KF_FIRE      ; space does the same
-        KEYTEST K_S_ROW, K_S_COL, KF_STOP        ; S = back to the map
+        KEYTEST 0, KF_UP                        ; accelerate
+        KEYTEST 1, KF_DOWN                      ; brake
+        KEYTEST 2, KF_LEFT                      ; steer left
+        KEYTEST 3, KF_RIGHT                     ; steer right
+        KEYTEST 4, KF_FIRE                      ; fire / change gear
+        ; space is always a second fire button, so the title screen responds to
+        ; it whatever the fire key has been changed to
+        ldx #K_SP_ROW
+        lda #K_SP_COL
+        jsr key_down
+        beq @nosp
+        lda kflags
+        ora #KF_FIRE
+        sta kflags
+@nosp:
+        KEYTEST 5, KF_STOP                      ; back to the map
         lda lastk
         eor #$FF
         and kflags
@@ -209,7 +258,14 @@ st_main:
         jmp @done
 @4:     lda #S_KEYS
         sta game_state
+        lda #0
+        sta menu_sel
+        sta kb_wait
+        lda #$FF                ; treat any key already down as old
+        sta rawprev
         jsr ui_clear_all
+        jsr text_clear
+        jsr ui_keys
         jmp @done
 @done:  rts
 
@@ -251,15 +307,154 @@ st_high:
 @done:  rts
 
 st_keys:
-        lda edge
-        and #16
-        beq @done
+        jmp keys_input
+
+; ---------------------------------------------------------------------------
+; keys_input - the DEFINE KEYS screen.
+;
+; It cannot use the bindings it is editing, so it reads the O, P, M and space
+; matrix positions directly: O and P move, fire picks the action, then the
+; first key pressed after everything is released becomes the new binding.
+keys_input:
+        jsr raw_bits            ; tmp4 = keys newly pressed this frame
+        lda kb_wait
+        beq @menu
+        cmp #1
+        beq @release
+        jmp @press
+@menu:
+        lda tmp4
+        and #4                  ; fire
+        beq @nav
+        lda menu_sel
+        cmp #6
+        bcc @bind
+        ; DONE
         lda #0
         sta menu_sel
+        sta kb_wait
         lda #S_MAIN
         sta game_state
         jsr main_menu
-@done:  rts
+        rts
+@bind:  lda #1
+        sta kb_wait
+        jsr prompt_release
+        rts
+@nav:   lda tmp4
+        and #1                  ; O = previous action
+        beq @right
+        lda menu_sel
+        beq @out
+        dec menu_sel
+        jmp @redraw
+@right: lda tmp4
+        and #2                  ; P = next action
+        beq @out
+        lda menu_sel
+        cmp #6
+        bcs @out
+        inc menu_sel
+@redraw:
+        jsr ui_keys
+@out:   rts
+
+; wait until every key is up, so the press that opened the binding is not the
+; one that gets recorded
+@release:
+        jsr key_any
+        bne @out
+        lda #2
+        sta kb_wait
+        jsr prompt_press
+@out2:  rts
+
+; record the first key that goes down
+@press:
+        jsr key_any
+        beq @out2
+        ldy #0
+@bit:   lda kbits,y
+        and keys,x
+        bne @got
+        iny
+        cpy #8
+        bne @bit
+        ldy #0
+@got:   lda kbits,y
+        sta tmp3
+        stx tmp2
+        ldx menu_sel
+        lda tmp2
+        sta kb_row,x
+        lda tmp3
+        sta kb_mask,x
+        lda #0
+        sta kb_wait
+        jsr ui_keys_prompt       ; A = 0: blank the prompt
+        jmp ui_keys
+
+prompt_release:
+        lda #1
+        jmp ui_keys_prompt
+
+prompt_press:
+        lda #2
+        jmp ui_keys_prompt
+
+; key_any - Z set when nothing is held, else X = matrix row that has a key
+key_any:
+        ldx #7
+@l:     lda keys,x
+        bne @yes
+        dex
+        bpl @l
+        lda #0                  ; nothing held: Z set
+        rts
+@yes:   rts
+
+; raw_bits - the raw O/P/fire/space matrix positions as new-press bits
+; (1 = O, 2 = P, 4 = fire or space)
+raw_bits:
+        lda #0
+        sta tmp5
+        ldx #K_O_ROW
+        lda keys,x
+        and #K_O_COL
+        beq @np
+        lda tmp5
+        ora #1
+        sta tmp5
+@np:    ldx #K_P_ROW
+        lda keys,x
+        and #K_P_COL
+        beq @nf
+        lda tmp5
+        ora #2
+        sta tmp5
+@nf:    ldx #K_M_ROW
+        lda keys,x
+        and #K_M_COL
+        beq @ns
+        lda tmp5
+        ora #4
+        sta tmp5
+@ns:    ldx #K_SP_ROW
+        lda keys,x
+        and #K_SP_COL
+        beq @edge
+        lda tmp5
+        ora #4
+        sta tmp5
+@edge:  lda rawprev
+        eor #$FF
+        and tmp5
+        sta tmp4
+        lda tmp5
+        sta rawprev
+        rts
+
+kbits:  .byte $01, $02, $04, $08, $10, $20, $40, $80
 
 ; ---------------------------------------------------------------------------
 go_drive:

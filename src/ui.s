@@ -6,6 +6,7 @@
         .export ui_title, ui_menu, ui_menu_mark, ui_drive, ui_icons
         .export ui_map, ui_map_marker, ui_clear_view, ui_clear_all, ui_msg
         .export ui_box, ui_high, ui_panel
+        .export ui_keys, ui_keys_prompt
         .export menu_main_tab, menu_main_n
         .export menu_prac_tab, menu_prac_n
         .export menu_phone_tab, menu_phone_n
@@ -15,8 +16,13 @@
         .import icon_sprites, lorry_sprites, town_cell_at
         .import truck_cell_x, truck_cell_y
         .import poi_tab, dest
+        .import kb_row, kb_mask
 
 MAP_Y = VIEW_Y + 32            ; the town map sits under the icon strip
+
+KEYS_Y    = 32                 ; first action row
+KEYS_COLC = 14                 ; action name column
+KEYS_COLK = 30                 ; key name column
 
         .bss
 mn_cnt:  .res 1
@@ -26,6 +32,9 @@ mcy:     .res 1
 mcx:     .res 1
 mm_x:    .res 1
 mm_y:    .res 1
+mk_i:    .res 1
+mk_y:    .res 1
+mk_c:    .res 1
 
         .code
 
@@ -438,6 +447,120 @@ ui_map_marker:
 @done:  rts
 
 ; ---------------------------------------------------------------------------
+; ---------------------------------------------------------------------------
+; ui_keys - the DEFINE KEYS screen: the six actions with their current keys,
+; a DONE row, and a prompt line the caller fills in while a key is expected.
+ui_keys:
+        lda #<t_keys
+        sta txtptr
+        lda #>t_keys
+        sta txtptr+1
+        ldx #14
+        ldy #8
+        jsr gtext
+        lda #<t_keyhint
+        sta txtptr
+        lda #>t_keyhint
+        sta txtptr+1
+        ldx #8
+        ldy #168
+        jsr gtext
+        lda #0
+        sta mk_i
+@row:   lda mk_i
+        asl a
+        asl a
+        asl a
+        asl a
+        clc
+        adc #KEYS_Y
+        sta mk_y
+        lda #32                 ; selection arrow
+        sta mk_c
+        lda mk_i
+        cmp menu_sel
+        bne @mark
+        lda #62
+        sta mk_c
+@mark:  lda mk_c
+        ldx #12
+        ldy mk_y
+        jsr gchar
+        lda mk_i                ; action name
+        asl a
+        tay
+        lda key_actions,y
+        sta txtptr
+        lda key_actions+1,y
+        sta txtptr+1
+        ldx #KEYS_COLC
+        ldy mk_y
+        jsr gtext
+        lda mk_i
+        cmp #6                  ; DONE has no key
+        bcs @next
+        jsr key_code
+@next:  inc mk_i
+        lda mk_i
+        cmp #7
+        bne @row
+        rts
+
+; key_code - print the two character name of binding mk_i at KEYS_COLK
+key_code:
+        ldx mk_i
+        lda #1
+        ldy #0
+@find:  cmp kb_mask,x
+        beq @got
+        asl a
+        iny
+        cpy #8
+        bne @find
+        ldy #0
+@got:   sty mk_c               ; column 0..7
+        lda kb_row,x
+        asl a
+        asl a
+        asl a
+        clc
+        adc mk_c
+        asl a                   ; (row*8 + col) * 2
+        tay
+        lda keynames,y
+        sta tmp1
+        lda keynames+1,y
+        sta tmp2
+        lda tmp1
+        ldx #KEYS_COLK
+        ldy mk_y
+        jsr gchar
+        lda tmp2
+        ldx #KEYS_COLK+1
+        ldy mk_y
+        jmp gchar
+
+; ui_keys_prompt - A = 0 blank, 1 "release", 2 "press a key"
+ui_keys_prompt:
+        pha
+        lda #<t_none             ; blank the line first: the messages are not
+        sta txtptr               ; the same length, and a shorter one would
+        lda #>t_none             ; leave the tail of the old one behind
+        sta txtptr+1
+        ldx #14
+        ldy #152
+        jsr gtext
+        pla
+        asl a
+        tay
+        lda prompt_tab,y
+        sta txtptr
+        lda prompt_tab+1,y
+        sta txtptr+1
+        ldx #14
+        ldy #152
+        jmp gtext
+
 ui_high:
         lda #<t_hs
         sta txtptr
@@ -456,6 +579,38 @@ t_oric:   .byte "ORIC ATMOS",0
 t_press:  .byte "PRESS FIRE",0
 t_town:   .byte "SCARTHORPE",0
 t_hs:     .byte "HIGH SCORES",0
+
+t_keys:    .byte "DEFINE KEYS",0
+t_keyhint: .byte "O/P MOVE  FIRE SELECT",0
+t_release: .byte "RELEASE KEYS",0
+t_pressk:  .byte "PRESS A KEY",0
+t_none:    .byte "                ",0
+
+prompt_tab: .word t_none, t_release, t_pressk
+
+key_actions:
+        .word a_accel, a_brake, a_left, a_right, a_fire, a_stop, a_done
+a_accel: .byte "ACCELERATE",0
+a_brake: .byte "BRAKE",0
+a_left:  .byte "LEFT",0
+a_right: .byte "RIGHT",0
+a_fire:  .byte "FIRE/GEAR",0
+a_stop:  .byte "BACK TO MAP",0
+a_done:  .byte "DONE",0
+
+; Two character names for the 64 matrix cells, in matrix order (row 0 first,
+; column 0 first).  The keyboard picture is printed on the Oric's keycaps, not
+; here, so the odd ones are shortened: RC/LC right and left control, ES escape,
+; LS/RS shift, LA/RA alt, BS backspace, RE return, SP space, UP/DN/LT/RT arrows.
+keynames:
+        .byte "7 ","N ","5 ","V ","RC","1 ","X ","3 "
+        .byte "J ","T ","R ","F ","--","ES","Q ","D "
+        .byte "M ","6 ","B ","4 ","LC","Z ","2 ","C "
+        .byte "K ","9 ","; ","- ","# ","--",$5C," ",$27," "
+        .byte "SP",", ",". ","UP","LS","LT","DN","RT"
+        .byte "U ","I ","O ","P ","LA","BS","] ","[ "
+        .byte "Y ","H ","G ","E ","RA","A ","S ","W "
+        .byte "8 ","L ","0 ","/ ","RS","RE","` ","= "
 
 icon_tab:
         .word icon_sprites, icon_sprites+54, icon_sprites+108
