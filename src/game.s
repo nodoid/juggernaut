@@ -115,6 +115,19 @@ KF_STOP  = 32
 skip:
 .endmacro
 
+; FIREALIAS row, mask - treat a fixed key as fire on top of the binding
+.macro FIREALIAS row, mask
+        .local skip
+        ldx #row
+        lda #mask
+        jsr key_down
+        beq skip
+        lda kflags
+        ora #KF_FIRE
+        sta kflags
+skip:
+.endmacro
+
 ; keys_default - the keys the game starts with
 keys_default:
         lda #K_A_ROW
@@ -153,16 +166,10 @@ read_keys:
         KEYTEST 2, KF_LEFT                      ; steer left
         KEYTEST 3, KF_RIGHT                     ; steer right
         KEYTEST 4, KF_FIRE                      ; fire / change gear
-        ; space is always a second fire button, so the title screen responds to
-        ; it whatever the fire key has been changed to
-        ldx #K_SP_ROW
-        lda #K_SP_COL
-        jsr key_down
-        beq @nosp
-        lda kflags
-        ora #KF_FIRE
-        sta kflags
-@nosp:
+        ; M and space are always fire buttons as well as whatever key has been
+        ; bound, so changing the fire key can never leave the menus dead
+        FIREALIAS K_M_ROW, K_M_COL
+        FIREALIAS K_SP_ROW, K_SP_COL
         KEYTEST 5, KF_STOP                      ; back to the map
         lda lastk
         eor #$FF

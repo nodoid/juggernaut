@@ -54,6 +54,8 @@ want.  DONE goes back to the main menu.  The new keys last until the machine is
 reset.  That screen always answers to `O`, `P`, `M` and Space themselves, so it
 can never lock you out, and the arrow keys, Escape and the shifts and controls
 can all be bound (they are shown shortened: `UP`, `LT`, `ES`, `RC` and so on).
+`M` and Space also keep working as fire everywhere else, whatever the fire key
+has been changed to, so the menus can never be left without one.
 
 ## How it is put together
 
