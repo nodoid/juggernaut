@@ -250,12 +250,11 @@ ui_icons:
         adc tmp1
         clc
         adc #4                  ; byte column of the icon
-        asl a
+        asl a                   ; *2
         sta tmp1
-        asl a
-        asl a                   ; *6 into pixels
+        asl a                   ; *4
         clc
-        adc tmp1
+        adc tmp1                ; *6, the six pixels of a character
         sta sel_x0
         clc
         adc #17

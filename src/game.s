@@ -870,8 +870,8 @@ game_new:
         eor #1
         sta lsize
         jsr toggle_size
-        lda #25
-        ldx #23
+        lda #31                 ; the loading bay at the depot
+        ldx #26
         ldy #0
         jmp truck_reset
 
