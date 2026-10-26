@@ -32,6 +32,11 @@ make
 `build/juggernaut.tap` loads and runs on an Atmos from BASIC with `CLOAD""`, or
 with `oricutron -m atmos -t build/juggernaut.tap -a`.
 
+The tape itself is committed, so you do not have to build anything to play it:
+download `build/juggernaut.tap` and load it into an Atmos, an emulator, or an
+Erebus/SD card setup.  Building overwrites it; if you want to keep the copy that
+came with the repo, `git checkout build/juggernaut.tap` puts it back.
+
 ## Controls
 
 | Key | Action |
@@ -116,10 +121,9 @@ the state machine and the key bindings can be followed step by step.
 
 Working: the title, the main menu, choosing the small or large lorry, defining
 keys, the practice menu, the drive screen with its six icons, the town map and
-phone directory, driving with gears,
-steering, the trailer, damage on kerbs and buildings, fuel, the clock, loading
-at the wholesalers, unloading at the depot, the garage, the tonnage in tons and
-kilos, and the end of game score.
+phone directory, driving with gears, steering, the trailer, damage on kerbs and
+buildings, fuel, the clock, loading at the wholesalers, unloading at the depot,
+the garage, the tonnage in tons and kilos, and the end of game score.
 
 Simplified compared with the Spectrum original: there are no other vehicles on
 the roads, the load quantity is "as much as fits" rather than a number you
@@ -127,3 +131,38 @@ choose with left/right, the high score table is displayed but not yet filled
 in, the key definitions are not saved anywhere, the lorry size changes the
 length and the capacity but not how the lorry handles, and the practice menu has
 one course rather than the five in the original.
+
+## Publishing this repository
+
+The tape in `build/` is tracked on purpose (see `.gitignore`), so every checkout
+has something to run without building anything.  After making changes:
+
+```sh
+make clean && make          # rebuild build/juggernaut.tap
+git add -A                  # the tape is committed with the sources
+git commit -m "what changed"
+git push
+```
+
+To publish it for the first time from a fresh clone:
+
+```sh
+git remote add origin https://github.com/<you>/juggernaut.git
+git push -u origin main
+```
+
+or let the GitHub CLI create the repository and push in one step:
+
+```sh
+gh repo create jugernaut --public --source=. --remote=origin --push
+```
+
+To make an existing repository public again:
+`gh repo edit --visibility public`, or the web UI at Settings, General, Danger
+Zone.
+
+## Licence
+
+DILLIGAF: "Do I Look Like I Give A Fuck".  See [LICENSE](LICENSE) - do what you
+like with this code, no conditions, no warranty of any kind.  That covers the
+code and assets written for this project, not CRL's 1985 original.

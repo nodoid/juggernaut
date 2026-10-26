@@ -1,7 +1,7 @@
-# Build output
-build/
+# Build output, except the ready-made tape that ships with the repo
+build/*
+!build/juggernaut.tap
 dist/
-*.tap
 *.dsk
 *.bin
 
