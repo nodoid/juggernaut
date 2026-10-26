@@ -55,23 +55,28 @@ T_GRASS  = 12
 T_ROUND  = 13
 T_MARK_B = 14                   ; telephone
 
-; keyboard matrix positions (row, column mask) for the Atmos layout.
-; Row = index/8 and column = index%8 in the Oric's QWERTY matrix, where
-; '1' is index 0 and the bottom row starts at index 40 with SHIFT.
-K_A_ROW = 3
-K_A_COL = $20
-K_Z_ROW = 5
-K_Z_COL = $02
-K_O_ROW = 2
-K_O_COL = $40
-K_P_ROW = 2
-K_P_COL = $80
-K_M_ROW = 5
-K_M_COL = $80
-K_S_ROW = 3
-K_S_COL = $40
-K_SP_ROW = 6
-K_SP_COL = $04
+; keyboard matrix positions.  The Oric matrix is eight rows of eight columns
+; and the QWERTY layout is spread across it in a scramble, so these were taken
+; from the matrix table rather than guessed from the keyboard picture:
+;
+;   row 0 7 n 5 v RCTRL 1 x 3      row 4 SPACE , . UP LSHIFT LEFT DOWN RIGHT
+;   row 1 j t r f -     ESC q d    row 5 u i o p LALT BACKSPACE ] [
+;   row 2 m 6 b 4 LCTRL z 2 c      row 6 y h g e RALT a s w
+;   row 3 k 9 ; - #     \ '        row 7 8 l 0 / RSHIFT RETURN ` =
+K_A_ROW  = 6
+K_A_COL  = $20
+K_Z_ROW  = 2
+K_Z_COL  = $20
+K_O_ROW  = 5
+K_O_COL  = $04
+K_P_ROW  = 5
+K_P_COL  = $08
+K_M_ROW  = 2
+K_M_COL  = $01
+K_S_ROW  = 6
+K_S_COL  = $40
+K_SP_ROW = 4
+K_SP_COL = $01
 
 ; Oric colour numbers
 C_BLACK  = 0
