@@ -21,7 +21,7 @@ assets:
 	python3 tools/gen_assets.py
 
 run: $(TAP)
-	tools/run.sh $(TAP)
+	tools/run.sh
 
 clean:
 	rm -rf $(BUILD)
